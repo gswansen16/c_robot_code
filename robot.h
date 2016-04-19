@@ -1,7 +1,7 @@
 #ifndef ROBOT_H
 #define ROBOT_H
 
-#import "gpio.h"
+#import "pwm.h"
 #import "mongoose.h"
 #import <stdio.h>
 #import <stdlib.h>

@@ -147,9 +147,17 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data) {
 			}else if(mg_vcmp(&method, "POST") == 0){
 				if(mg_vcmp(&uri, "/control_robot") == 0){
 					memcpy(robot_commands, body.p, MIN(body.len, 512));
-					printf("left_key: %d up_key: %d right_key: %d down_key: %d\n", robot_commands[0], robot_commands[1], robot_commands[2], robot_commands[3]);
 
+					int left_key = (int) robot_commands[0];
+					int up_key = (int) robot_commands[1];
+					int right_key = (int) robot_commands[2];
+					int down_key = (int) robot_commands[3];
 
+					if(up_key){
+						start_pwm("P9_16", 8.0F, 50, 0);
+					}else{
+						start_pwm("P9_16", 7.5F, 50, 0);
+					}
 
 					mg_printf(nc, "HTTP/1.1 200 OK\r\nContent-type: text/html\r\nContent-length: 7\r\n\r\nSuccess");
 					mg_send_http_chunk(nc, "", 0);
