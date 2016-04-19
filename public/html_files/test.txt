@@ -1,0 +1,5 @@
+AB Challenge Problems
+—————————————————————
+
+1. d/dx(integral(a, x^2, lim(h -> 0, (f(x+h)-f(x-h))/2h))) = f’(x^2)*2x. 
+2. 

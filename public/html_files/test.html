@@ -1,0 +1,56 @@
+<script type="text/javascript" src="/static/jquery-2.2.1.min.js"></script>
+<script type="text/javascript">
+	$(document).ready(function(){
+		var keys_pressed = []
+
+		$(document).keydown(function(e){	
+			console.log(e.which);		
+			keys_pressed[e.which] = true;
+			moveRobot(50);
+		})
+
+		$(document).keyup(function(e){
+			keys_pressed[e.which] = false;
+			moveRobot(50);
+		})
+
+		$(window).unload(function(e){
+			moveRobot(0);
+		})
+
+		function moveRobot(speed){
+			key_dict = {}
+
+			if(keys_pressed[37] || keys_pressed[65]) key_dict["left_key"] = true;
+			else key_dict["left_key"] = false;
+
+			if(keys_pressed[38] || keys_pressed[87]) key_dict["up_key"] = true;
+			else key_dict["up_key"] = false;
+
+			if(keys_pressed[39] || keys_pressed[68]) key_dict["right_key"] = true;
+			else key_dict["right_key"] = false;
+
+			if(keys_pressed[40] || keys_pressed[83]) key_dict["down_key"] = true;
+			else key_dict["down_key"] = false;
+			
+			$.ajax({
+	                url: '/control_robot',
+	                type: 'post',
+	                data: {
+	                    "speed": speed,
+	                    "keys_pressed": JSON.stringify(key_dict)
+	                }
+	            }
+	        );
+		}
+	});
+</script>
+
+<html>
+	<body>
+		<p>
+			Random Number = {{rand_numb}}
+		</p>
+	</body>
+
+</html>
