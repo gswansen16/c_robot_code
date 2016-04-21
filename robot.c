@@ -1,4 +1,4 @@
-#import "robot.h"
+#include "robot.h"
 
 //Tests if str starts with test_str.
 //Return 0 if str starts with test_str. -1 otherwise.
@@ -70,7 +70,7 @@ static void load_files(char* files[], int num_files){
 
 // Fills the file_data pointer with the data from the specified file.
 // The file must be loaded first with load_files()
-long get_file(char* file_name, char** file_data){
+static long get_file(char* file_name, char** file_data){
 	struct file_node *tmp_ptr = html_pages;
 
 	for(; tmp_ptr != NULL; tmp_ptr = tmp_ptr->next){
@@ -100,6 +100,7 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data) {
 					if(response == NULL || response_length < 0){
 						mg_printf(nc, "HTTP/1.1 404 Not Found\r\nContent-type: text/html\r\nContent-length: 44\r\n\r\n<html><body>Page not found. :(</body></html>");
 						mg_send_http_chunk(nc, "", 0);
+						break;
 					}
 
 					mg_printf(nc, "HTTP/1.1 200 OK\r\nContent-type: text/html\r\nContent-length: %i\r\n\r\n", response_length);
@@ -148,23 +149,14 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data) {
 				if(mg_vcmp(&uri, "/control_robot") == 0){
 					memcpy(robot_commands, body.p, MIN(body.len, 512));
 
-					int left_key = (int) robot_commands[0];
-					int up_key = (int) robot_commands[1];
-					int right_key = (int) robot_commands[2];
-					int down_key = (int) robot_commands[3];
-
-					if(up_key){
-						start_pwm("P9_16", 8.0F, 50, 0);
-					}else{
-						start_pwm("P9_16", 7.5F, 50, 0);
-					}
-
 					mg_printf(nc, "HTTP/1.1 200 OK\r\nContent-type: text/html\r\nContent-length: 7\r\n\r\nSuccess");
 					mg_send_http_chunk(nc, "", 0);
 					break;
 				}
 			}
-			
+
+			mg_printf(nc, "HTTP/1.1 404 Not Found\r\nContent-type: text/html\r\nContent-length: 41\r\n\r\n<html><body>Unknown Request</body></html>");
+			mg_send_http_chunk(nc, "", 0);			
 			break;
 		}
 
@@ -175,8 +167,70 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data) {
   }
 }
 
+static void * robot_thread(void* min_loop_time){
+	long loop_time = (long) min_loop_time;
+
+	if(start_pwm(LEFT_MOTOR, 7.5F, 50, 0) == 0 || start_pwm(RIGHT_MOTOR, 7.5F, 50, 0) == 0){
+		fprintf(stderr, "Failed to initiliaze motors.\n");
+	}
+
+	while(thread_running){
+		double now = cs_time();
+
+		unsigned char left_key = robot_commands[0], up_key = robot_commands[1], right_key = robot_commands[2], down_key = robot_commands[3];
+		float speed = ((float) robot_commands[4]) / 100.0F;
+
+		if(up_key){
+			if(left_key){
+				set_duty_cycle_pwm(LEFT_MOTOR, 7.5F);
+				set_duty_cycle_pwm(RIGHT_MOTOR, 7.5F + speed);
+			}else if(right_key){
+				set_duty_cycle_pwm(LEFT_MOTOR, 7.5F + speed);
+				set_duty_cycle_pwm(RIGHT_MOTOR, 7.5F);
+			}else{
+				set_duty_cycle_pwm(LEFT_MOTOR, 7.5F + speed);
+				set_duty_cycle_pwm(RIGHT_MOTOR, 7.5F + speed);
+			}
+		}else if(down_key){
+			if(left_key){
+				set_duty_cycle_pwm(LEFT_MOTOR, 7.5F - speed);
+				set_duty_cycle_pwm(RIGHT_MOTOR, 7.5F);
+			}else if(right_key){
+				set_duty_cycle_pwm(LEFT_MOTOR, 7.5F);
+				set_duty_cycle_pwm(RIGHT_MOTOR, 7.5F - speed);
+			}else{
+				set_duty_cycle_pwm(LEFT_MOTOR, 7.5F - speed);
+				set_duty_cycle_pwm(RIGHT_MOTOR, 7.5F - speed);
+			}
+		}else if(right_key){
+			set_duty_cycle_pwm(LEFT_MOTOR, 7.5F + speed);
+			set_duty_cycle_pwm(RIGHT_MOTOR, 7.5F - speed);
+		}else if(left_key){
+			set_duty_cycle_pwm(LEFT_MOTOR, 7.5F - speed);
+			set_duty_cycle_pwm(RIGHT_MOTOR, 7.5F + speed);
+		}else{
+			set_duty_cycle_pwm(LEFT_MOTOR, 7.5F);
+			set_duty_cycle_pwm(RIGHT_MOTOR, 7.5F);
+		}
+
+		double elapsed = cs_time() - now;
+		if(elapsed < loop_time)
+			usleep((loop_time - elapsed) * 1000);
+	}
+
+	return NULL;
+}
+
 int main(int argc, char ** argv){
 	load_files(private_files, sizeof private_files/sizeof *private_files);
+
+	pthread_t thread_id;
+	int ret = pthread_create(&thread_id, NULL, robot_thread, (void *) 25);
+
+	if(ret < 0){
+		fprintf(stderr, "Couldn't start robot thread.\n");
+		return 1;
+	}
 
 	struct mg_mgr mgr;
 	struct mg_connection *nc;
@@ -196,5 +250,8 @@ int main(int argc, char ** argv){
 	}
 
 	mg_mgr_free(&mgr);
+
+	thread_running = 0;
+	pthread_join(thread_id, NULL);
 	return 0;
 }

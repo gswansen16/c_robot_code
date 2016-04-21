@@ -1,7 +1,8 @@
 <script type="text/javascript" src="/public/jquery-2.2.3.min.js"></script>
 <script type="text/javascript">
 	$(document).ready(function(){
-		var keys_pressed = []
+		var keys_pressed = [];
+		var speed = 50;
 
 		$(document).keydown(function(e){	
 			console.log(e.which);		
@@ -33,6 +34,8 @@
 
 			if(keys_pressed[40] || keys_pressed[83]) data += String.fromCharCode(1);
 			else data += String.fromCharCode(0);
+
+			data += String.fromCharCode(speed);
 			
 			$.ajax(
 			{
