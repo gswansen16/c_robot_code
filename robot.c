@@ -171,7 +171,9 @@ static void * robot_thread(void* min_loop_time){
 	long loop_time = (long) min_loop_time;
 
 	if(start_pwm(LEFT_MOTOR, 7.5F, 50, 0) == 0 || start_pwm(RIGHT_MOTOR, 7.5F, 50, 0) == 0){
-		fprintf(stderr, "Failed to INITIALIZE motors.\n");
+		fprintf(stderr, "Failed to initialize pins.\n");
+	}else{
+		printf("Initialized pins properly.\nRobot thread running.\n");
 	}
 
 	while(thread_running){
@@ -236,14 +238,15 @@ int main(int argc, char ** argv){
 	struct mg_connection *nc;
 
 	mg_mgr_init(&mgr, NULL);
-	nc = mg_bind(&mgr, SERVER_PORT, ev_handler);
+	nc = mg_bind(&mgr, SERVER_ADDRESS ":" SERVER_PORT, ev_handler);
 
 	if(nc == NULL){
-		fprintf(stderr, "Couldn't bind to port: " SERVER_PORT "\n");
+		fprintf(stderr, "Couldn't bind to address: " SERVER_ADDRESS ":" SERVER_PORT "\n");
 		return 1;
 	}
 
 	mg_set_protocol_http_websocket(nc);
+	printf("Webserver running on port: " SERVER_ADDRESS ":" SERVER_PORT "\n");
 
 	for(;;){
 		mg_mgr_poll(&mgr, 1000);

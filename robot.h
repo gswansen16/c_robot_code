@@ -9,6 +9,8 @@
 #include <unistd.h>
 
 #define SERVER_PORT "8000"
+#define SERVER_ADDRESS "0.0.0.0"
+
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 
 #define LEFT_MOTOR "P9_16"
