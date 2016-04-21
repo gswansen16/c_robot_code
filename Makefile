@@ -1,7 +1,7 @@
 TARGET = robot
-LIBS = 
+LIBS = -pthread
 CC = gcc
-CFLAGS = -g -Wall
+CFLAGS = -g -Wall -pthread
 
 .PHONY: default all clean
 
