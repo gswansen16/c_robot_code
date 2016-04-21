@@ -18,8 +18,8 @@ make
 ## Running/Usage
 To make sure the motors move properly ensure that they are given a 5V power supply, grounded properly with the left motor control being attached to pin P9_16 and the right motor control being attached to pin P9_22.
 
-To run the project after it is compiled with make simply run the binary robot.
+To run the project after it is compiled with make simply run the binary robot. The binary must be ran as sudo.
 
 ```bash
-./robot
+sudo ./robot
 ```
