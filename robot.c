@@ -171,7 +171,7 @@ static void * robot_thread(void* min_loop_time){
 	long loop_time = (long) min_loop_time;
 
 	if(start_pwm(LEFT_MOTOR, 7.5F, 50, 0) == 0 || start_pwm(RIGHT_MOTOR, 7.5F, 50, 0) == 0){
-		fprintf(stderr, "Failed to initiliaze motors.\n");
+		fprintf(stderr, "Failed to INITIALIZE motors.\n");
 	}
 
 	while(thread_running){
