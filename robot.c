@@ -16,8 +16,22 @@ static int strstartsstr(struct mg_str *str, char* test_str){
 	return 0;
 }
 
+static int is_file(char* path){
+	struct stat s;
+	if(stat(path,&s) == 0){
+	    if( s.st_mode & S_IFREG ){
+	    	return 1;
+	    }
+	}
+
+	return 0;
+}
+
 //Reads a file into memory.
 static long read_file(char* file_name, char** file_data){
+	if(!is_file(file_name))
+		return -1;
+
 	FILE *f = fopen(file_name, "rb");
 
 	if(f == NULL)
@@ -119,6 +133,26 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data) {
 					memcpy(file_path, uri.p, i);
 					file_path[i] = '\0';
 					file_path++;
+
+					//The following lines make sure the filepath doesn't have a ".." in it as that could be a vulnerability that gives access to all files.
+					//For example someone could pass the path public/../../../../passwords.txt and it would push them up several directories and attempt to access the file passwords.txt in that directory.
+					//I mean I don't think it matters that much that there is a vulnerability in our code because of the limited scope of our application
+					//But like it felt necessary to fix.
+					int flag = 0;
+					int x = 0;
+					for(x; x < i; x++){
+						if(file_path[x] == '.' && file_path[x + 1] == "."){
+							flag = 1;
+							break;
+						}
+					}
+
+					if(flag){
+						mg_printf(nc, "HTTP/1.1 404 Not Found\r\nContent-type: text/html\r\nContent-length: 53\r\n\r\n<html><body>File path can't be accessed</body></html>");
+						mg_send_http_chunk(nc, "", 0);
+						break;
+					}
+
 
 					char* response = 0;
 					int response_length = get_file(file_path, &response);
