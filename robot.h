@@ -17,15 +17,6 @@
 #define LEFT_MOTOR "P9_16"
 #define RIGHT_MOTOR "P9_22"
 
-struct file_node {
-	char* file_name;
-	char* file_data;
-	long file_size;
-	struct file_node* next;
-};
-
-struct file_node *html_pages = NULL;
-
 char* private_files[] = {"private/robot_control.html"};
 
 unsigned char robot_commands[512] = {0};

@@ -1,5 +1,15 @@
 #include "robot.h"
 
+
+struct file_node {
+	char* file_name;
+	char* file_data;
+	long file_size;
+	struct file_node* next;
+};
+
+struct file_node *html_pages = NULL;
+
 //Tests if str starts with test_str.
 //Return 0 if str starts with test_str. -1 otherwise.
 static int strstartsstr(struct mg_str *str, char* test_str){
@@ -18,8 +28,8 @@ static int strstartsstr(struct mg_str *str, char* test_str){
 
 static int is_file(char* path){
 	struct stat s;
-	if(stat(path,&s) == 0){
-	    if( s.st_mode & S_IFREG ){
+	if(stat(path, &s) == 0){
+	    if(s.st_mode & S_IFREG){
 	    	return 1;
 	    }
 	}
@@ -42,6 +52,8 @@ static long read_file(char* file_name, char** file_data){
 	fseek(f, 0, SEEK_SET);
 
 	char *string = malloc(fsize + 1);
+	if(string == NULL) return -1;
+
 	fread(string, fsize, 1, f);
 	fclose(f);
 
@@ -49,46 +61,38 @@ static long read_file(char* file_name, char** file_data){
 	return fsize;
 }
 
-//Loads the specified files into a linked list "html_pages"
-static void load_files(char* files[], int num_files){
-	struct file_node *tmp_ptr = NULL;
+//Loads the specified file into a linked list "html_pages"
+static void load_file(char* file){
+	char* file_string = 0;
+	long file_size = read_file(file, &file_string);
 
-	int i = 0;
-	for(; i < num_files; i++){
-		char* file_string = 0;
-		long file_size = read_file(files[i], &file_string);
+	if(file_size < 1 || file_string == NULL)
+		return;
 
-		if(file_size < 1 || file_string == NULL)
-			continue;
+	struct file_node *new_node = malloc(sizeof(struct file_node));
+	if(new_node == NULL) return;
 
-		if(i == 0){
-			if(html_pages == NULL){
-				html_pages = malloc(sizeof(struct file_node));
-				tmp_ptr = html_pages;
-			}else{
-				for(tmp_ptr = html_pages; tmp_ptr->next != NULL; tmp_ptr = tmp_ptr->next);
-				tmp_ptr->next = malloc(sizeof(struct file_node));
-				tmp_ptr = tmp_ptr->next;
-			}
-		}else{
-			tmp_ptr->next = malloc(sizeof(struct file_node));
-			tmp_ptr = tmp_ptr->next;
-		}
+	new_node->file_name = file;
+	new_node->file_data = file_string;
+	new_node->file_size = file_size;	
+	new_node->next = NULL;
 
-		tmp_ptr->file_name = files[i];
-		tmp_ptr->file_data = file_string;
-		tmp_ptr->file_size = file_size;	
-		tmp_ptr->next = NULL;
+	if(html_pages == NULL){
+		html_pages = new_node;
+	}else{
+		struct file_node *tmp_ptr = html_pages;
+		for(;tmp_ptr->next != NULL; tmp_ptr = tmp_ptr->next);
+		tmp_ptr->next = new_node;
 	}
 }
 
 // Fills the file_data pointer with the data from the specified file.
 // The file must be loaded first with load_files()
-static long get_file(char* file_name, char** file_data){
+static long get_file(char* file_path, char** file_data){
 	struct file_node *tmp_ptr = html_pages;
 
 	for(; tmp_ptr != NULL; tmp_ptr = tmp_ptr->next){
-		if(strcmp(tmp_ptr->file_name, file_name) == 0){
+		if(strcmp(tmp_ptr->file_name, file_path) == 0){
 			*file_data = tmp_ptr->file_data;
 			return tmp_ptr->file_size;
 		}
@@ -140,8 +144,8 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data) {
 					//But like it felt necessary to fix.
 					int flag = 0;
 					int x = 0;
-					for(x; x < i; x++){
-						if(file_path[x] == '.' && file_path[x + 1] == "."){
+					for(; x < i; x++){
+						if(file_path[x] == '.' && file_path[x + 1] == '.'){
 							flag = 1;
 							break;
 						}
@@ -158,8 +162,8 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data) {
 					int response_length = get_file(file_path, &response);
 
 					if(response_length < 0 || response == NULL){
-						char* temp[1] = {file_path};
-						load_files(temp, 1);
+						load_file(file_path);
+						response = 0;
 						response_length = get_file(file_path, &response);
 						if(response_length < 0 || response == NULL){
 							mg_printf(nc, "HTTP/1.1 404 Not Found\r\nContent-type: text/html\r\nContent-length: 44\r\n\r\n<html><body>File not found. :(</body></html>");
@@ -169,10 +173,9 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data) {
 					}
 
 					mg_printf(nc, "HTTP/1.1 200 OK\r\nContent-type: text/html\r\nContent-length: %i\r\n\r\n", response_length);
-					mg_printf(nc, "%s", response);
+					mg_send(nc, (void *) response, response_length);
 					mg_send_http_chunk(nc, "", 0);
 
-					free(--file_path);
 					break;
 				}else{
 					mg_printf(nc, "HTTP/1.1 404 Not Found\r\nContent-type: text/html\r\nContent-length: 44\r\n\r\n<html><body>Page not found. :(</body></html>");
@@ -258,7 +261,10 @@ static void * robot_thread(void* min_loop_time){
 }
 
 int main(int argc, char ** argv){
-	load_files(private_files, sizeof private_files/sizeof *private_files);
+	int i = 0;
+	for(; i < (sizeof private_files/sizeof *private_files); i++){
+		load_file(private_files[i]);
+	}
 
 	pthread_t thread_id;
 	int ret = pthread_create(&thread_id, NULL, robot_thread, (void *) 25);
