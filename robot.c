@@ -1,14 +1,30 @@
 #include "robot.h"
 
+static void get_mime_type(char* file_name, char* buffer, int len){
+	char *file_ext = strrchr(file_name, '.');
 
-struct file_node {
-	char* file_name;
-	char* file_data;
-	long file_size;
-	struct file_node* next;
-};
+    if(!file_ext || file_ext == file_name) return;
 
-struct file_node *html_pages = NULL;
+    file_ext = file_ext + 1;
+
+    int i = 0;
+    for(; i < sizeof(pairs) / sizeof(mime_pairs); i++){
+    	if(strcmp(pairs[i][0], file_ext) == 0){
+    		int pairs_length = strlen(pairs[i][1]);
+
+    		if(len < 17 + pairs_length){
+    			return;
+    		}
+
+    		memcpy(buffer, "Content-Type: ", 14);
+    		memcpy(buffer + 14, pairs[i][1], pairs_length);
+    		memcpy(buffer + 14 + pairs_length, "\r\n", 2);
+    		buffer[16 + pairs_length] = '\0';
+
+    		return;
+    	}
+    }
+}
 
 //Tests if str starts with test_str.
 //Return 0 if str starts with test_str. -1 otherwise.
@@ -172,7 +188,11 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data) {
 						}
 					}
 
-					mg_printf(nc, "HTTP/1.1 200 OK\r\nContent-type: text/html\r\nContent-length: %i\r\n\r\n", response_length);
+					char buffer[1024];
+					buffer[0] = '\0';
+					get_mime_type(file_path, buffer, 1024);
+
+					mg_printf(nc, "HTTP/1.1 200 OK\r\n%sContent-length: %i\r\n\r\n", buffer, response_length);
 					mg_send(nc, (void *) response, response_length);
 					mg_send_http_chunk(nc, "", 0);
 
@@ -204,7 +224,7 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data) {
   }
 }
 
-static void * robot_thread(void* min_loop_time){
+static void * non_autonomous_robot_thread(void* min_loop_time){
 	long loop_time = (long) min_loop_time;
 
 	if(start_pwm(LEFT_MOTOR, 7.5F, 50, 0) == 0 || start_pwm(RIGHT_MOTOR, 7.5F, 50, 0) == 0){
@@ -260,14 +280,42 @@ static void * robot_thread(void* min_loop_time){
 	return NULL;
 }
 
+static void * autonomous_robot_thread(){
+	if(start_pwm(LEFT_MOTOR, 7.5F, 50, 0) == 0 || start_pwm(RIGHT_MOTOR, 7.5F, 50, 0) == 0){
+		fprintf(stderr, "Failed to initialize pins.\n");
+	}else{
+		printf("Initialized pins properly.\nRobot thread running.\n");
+	}
+
+	setup_channel_gpio(DISTANCE_SENSOR, INPUT, 0);
+	set_duty_cycle_pwm(LEFT_MOTOR, 7.5F + 1);
+	set_duty_cycle_pwm(RIGHT_MOTOR, 7.5F + 1);
+
+	while(1){
+		unsigned int value = 0;
+		input_gpio(DISTANCE_SENSOR, &value);
+		if(value){
+			set_duty_cycle_pwm(LEFT_MOTOR, 7.5F);
+			set_duty_cycle_pwm(RIGHT_MOTOR, 7.5F);
+		}else{
+			set_duty_cycle_pwm(LEFT_MOTOR, 7.5F + 1);
+			set_duty_cycle_pwm(RIGHT_MOTOR, 7.5F + 1);
+		}
+	}
+
+	return NULL;
+}
+
 int main(int argc, char ** argv){
+	#ifndef AUTONOMOUS_MODE
+
 	int i = 0;
 	for(; i < (sizeof private_files/sizeof *private_files); i++){
 		load_file(private_files[i]);
 	}
 
 	pthread_t thread_id;
-	int ret = pthread_create(&thread_id, NULL, robot_thread, (void *) 25);
+	int ret = pthread_create(&thread_id, NULL, non_autonomous_robot_thread, (void *) 25);
 
 	if(ret < 0){
 		fprintf(stderr, "Couldn't start robot thread.\n");
@@ -297,4 +345,10 @@ int main(int argc, char ** argv){
 	thread_running = 0;
 	pthread_join(thread_id, NULL);
 	return 0;
+
+	#else
+
+	autonomous_robot_thread();
+
+	#endif
 }
