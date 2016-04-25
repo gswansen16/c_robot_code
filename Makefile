@@ -1,5 +1,5 @@
 TARGET = robot
-LIBS =
+LIBS = -pthread
 CC = gcc
 CFLAGS = -g -Wall -pthread
 
