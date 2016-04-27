@@ -227,7 +227,7 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data) {
 static void * non_autonomous_robot_thread(void* min_loop_time){
 	long loop_time = (long) min_loop_time;
 
-	if(start_pwm(LEFT_MOTOR, 7.5F, 50, 0) == 0 || start_pwm(RIGHT_MOTOR, 7.5F, 50, 0) == 0){
+	if(start_pwm(LEFT_MOTOR, PWM_MOTOR_DUTY_CYCLE_CENTER, PWM_MOTOR_FREQUENCY, 0) == 0 || start_pwm(RIGHT_MOTOR, PWM_MOTOR_DUTY_CYCLE_CENTER, PWM_MOTOR_FREQUENCY, 0) == 0){
 		fprintf(stderr, "Failed to initialize pins.\n");
 	}else{
 		printf("Initialized pins properly.\nRobot thread running.\n");
