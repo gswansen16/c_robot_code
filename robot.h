@@ -19,6 +19,13 @@
 #define RIGHT_MOTOR "P9_22"
 #define DISTANCE_SENSOR "P9_11"
 
+//The following values define the operating frequency and duty cycle for the motor controller. 
+//For example if the motor controller was set with a frequency of 333 HZ and a duty cycle of 50% it should be at rest.
+//For the motor to be going completely forward it should be at a frequency of 333 HZ and a duty cycle of 50% + 16.66%.
+#define PWM_MOTOR_FREQUENCY 333
+#define PWM_MOTOR_DUTY_CYCLE_CENTER 50.00F
+#define PWM_MOTOR_DUTY_CYCLE_RANGE 16.66F
+
 struct file_node {
 	char* file_name;
 	char* file_data;

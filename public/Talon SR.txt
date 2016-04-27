@@ -1,0 +1,6 @@
+Duty Cycle:
+	- Reverse 33.3333% duty cycle
+	- Stopped 50% duty cycle
+	- Forward 66.66% duty cycle
+
+Frequency: 333HZ

@@ -237,39 +237,39 @@ static void * non_autonomous_robot_thread(void* min_loop_time){
 		double now = cs_time();
 
 		unsigned char left_key = robot_commands[0], up_key = robot_commands[1], right_key = robot_commands[2], down_key = robot_commands[3];
-		float speed = ((float) robot_commands[4]) / 100.0F;
+		float speed = PWM_MOTOR_DUTY_CYCLE_RANGE * (((float) robot_commands[4]) / 100.0F);
 
 		if(up_key){
 			if(left_key){
-				set_duty_cycle_pwm(LEFT_MOTOR, 7.5F);
-				set_duty_cycle_pwm(RIGHT_MOTOR, 7.5F + speed);
+				set_duty_cycle_pwm(LEFT_MOTOR, PWM_MOTOR_DUTY_CYCLE_CENTER);
+				set_duty_cycle_pwm(RIGHT_MOTOR, PWM_MOTOR_DUTY_CYCLE_CENTER + speed);
 			}else if(right_key){
-				set_duty_cycle_pwm(LEFT_MOTOR, 7.5F + speed);
-				set_duty_cycle_pwm(RIGHT_MOTOR, 7.5F);
+				set_duty_cycle_pwm(LEFT_MOTOR, PWM_MOTOR_DUTY_CYCLE_CENTER + speed);
+				set_duty_cycle_pwm(RIGHT_MOTOR, PWM_MOTOR_DUTY_CYCLE_CENTER);
 			}else{
-				set_duty_cycle_pwm(LEFT_MOTOR, 7.5F + speed);
-				set_duty_cycle_pwm(RIGHT_MOTOR, 7.5F + speed);
+				set_duty_cycle_pwm(LEFT_MOTOR, PWM_MOTOR_DUTY_CYCLE_CENTER + speed);
+				set_duty_cycle_pwm(RIGHT_MOTOR, PWM_MOTOR_DUTY_CYCLE_CENTER + speed);
 			}
 		}else if(down_key){
 			if(left_key){
-				set_duty_cycle_pwm(LEFT_MOTOR, 7.5F - speed);
-				set_duty_cycle_pwm(RIGHT_MOTOR, 7.5F);
+				set_duty_cycle_pwm(LEFT_MOTOR, PWM_MOTOR_DUTY_CYCLE_CENTER - speed);
+				set_duty_cycle_pwm(RIGHT_MOTOR, PWM_MOTOR_DUTY_CYCLE_CENTER);
 			}else if(right_key){
-				set_duty_cycle_pwm(LEFT_MOTOR, 7.5F);
-				set_duty_cycle_pwm(RIGHT_MOTOR, 7.5F - speed);
+				set_duty_cycle_pwm(LEFT_MOTOR, PWM_MOTOR_DUTY_CYCLE_CENTER);
+				set_duty_cycle_pwm(RIGHT_MOTOR, PWM_MOTOR_DUTY_CYCLE_CENTER - speed);
 			}else{
-				set_duty_cycle_pwm(LEFT_MOTOR, 7.5F - speed);
-				set_duty_cycle_pwm(RIGHT_MOTOR, 7.5F - speed);
+				set_duty_cycle_pwm(LEFT_MOTOR, PWM_MOTOR_DUTY_CYCLE_CENTER - speed);
+				set_duty_cycle_pwm(RIGHT_MOTOR, PWM_MOTOR_DUTY_CYCLE_CENTER - speed);
 			}
 		}else if(right_key){
-			set_duty_cycle_pwm(LEFT_MOTOR, 7.5F + speed);
-			set_duty_cycle_pwm(RIGHT_MOTOR, 7.5F - speed);
+			set_duty_cycle_pwm(LEFT_MOTOR, PWM_MOTOR_DUTY_CYCLE_CENTER + speed);
+			set_duty_cycle_pwm(RIGHT_MOTOR, PWM_MOTOR_DUTY_CYCLE_CENTER - speed);
 		}else if(left_key){
-			set_duty_cycle_pwm(LEFT_MOTOR, 7.5F - speed);
-			set_duty_cycle_pwm(RIGHT_MOTOR, 7.5F + speed);
+			set_duty_cycle_pwm(LEFT_MOTOR, PWM_MOTOR_DUTY_CYCLE_CENTER - speed);
+			set_duty_cycle_pwm(RIGHT_MOTOR, PWM_MOTOR_DUTY_CYCLE_CENTER + speed);
 		}else{
-			set_duty_cycle_pwm(LEFT_MOTOR, 7.5F);
-			set_duty_cycle_pwm(RIGHT_MOTOR, 7.5F);
+			set_duty_cycle_pwm(LEFT_MOTOR, PWM_MOTOR_DUTY_CYCLE_CENTER);
+			set_duty_cycle_pwm(RIGHT_MOTOR, PWM_MOTOR_DUTY_CYCLE_CENTER);
 		}
 
 		double elapsed = cs_time() - now;
@@ -288,18 +288,18 @@ static void * autonomous_robot_thread(){
 	}
 
 	setup_channel_gpio(DISTANCE_SENSOR, INPUT, 0);
-	set_duty_cycle_pwm(LEFT_MOTOR, 7.5F + 1);
-	set_duty_cycle_pwm(RIGHT_MOTOR, 7.5F + 1);
+	set_duty_cycle_pwm(LEFT_MOTOR, PWM_MOTOR_DUTY_CYCLE_CENTER + PWM_MOTOR_DUTY_CYCLE_RANGE);
+	set_duty_cycle_pwm(RIGHT_MOTOR, PWM_MOTOR_DUTY_CYCLE_CENTER + PWM_MOTOR_DUTY_CYCLE_RANGE);
 
 	while(1){
 		unsigned int value = 0;
 		input_gpio(DISTANCE_SENSOR, &value);
 		if(value){
-			set_duty_cycle_pwm(LEFT_MOTOR, 7.5F);
-			set_duty_cycle_pwm(RIGHT_MOTOR, 7.5F);
+			set_duty_cycle_pwm(LEFT_MOTOR, PWM_MOTOR_DUTY_CYCLE_CENTER);
+			set_duty_cycle_pwm(RIGHT_MOTOR, PWM_MOTOR_DUTY_CYCLE_CENTER);
 		}else{
-			set_duty_cycle_pwm(LEFT_MOTOR, 7.5F + 1);
-			set_duty_cycle_pwm(RIGHT_MOTOR, 7.5F + 1);
+			set_duty_cycle_pwm(LEFT_MOTOR, PWM_MOTOR_DUTY_CYCLE_CENTER + PWM_MOTOR_DUTY_CYCLE_RANGE);
+			set_duty_cycle_pwm(RIGHT_MOTOR, PWM_MOTOR_DUTY_CYCLE_CENTER + PWM_MOTOR_DUTY_CYCLE_RANGE);
 		}
 	}
 
