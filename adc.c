@@ -7,9 +7,9 @@
 #include "adc.h"
 #include "common.h"
 
-char adc_prefix_dir[40];
+static char adc_prefix_dir[40];
 
-int adc_initialized = 0;
+static int adc_initialized = 0;
 
 int initialize_adc(void)
 {

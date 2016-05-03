@@ -1,5 +1,43 @@
 #include "robot.h"
 
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
+
+#define SERVER_PORT "8000"
+#define SERVER_ADDRESS "0.0.0.0"
+
+#define LEFT_MOTOR "P9_16"
+#define RIGHT_MOTOR "P9_22"
+#define DISTANCE_SENSOR "P9_11"
+
+//The following values define the operating frequency and duty cycle for the motor controller. 
+//For example if the motor controller was set with a frequency of 333 HZ and a duty cycle of 50% it should be at rest.
+//For the motor to be going completely forward it should be at a frequency of 333 HZ and a duty cycle of 50% + 16.66%.
+#define PWM_MOTOR_FREQUENCY 333
+#define PWM_MOTOR_DUTY_CYCLE_CENTER 50.00F
+#define PWM_MOTOR_DUTY_CYCLE_RANGE 16.66F
+
+struct file_node {
+	char* file_name;
+	char* file_data;
+	long file_size;
+	struct file_node* next;
+};
+
+typedef char* mime_pairs[2];
+
+static mime_pairs pairs[] = {
+	{"jar", "application/java-archive"},
+	{"html", "text/html"},
+	{"js", "application/javascript"},
+	{"txt", "text/plain"}
+};
+
+static char* private_files[] = {"private/robot_control.html"};
+
+static struct file_node *loaded_files = NULL;
+static unsigned char robot_commands[512] = {0};
+static int thread_running = 1;
+
 static void get_mime_type(char* file_name, char* buffer, int len){
 	char *file_ext = strrchr(file_name, '.');
 
@@ -77,7 +115,20 @@ static long read_file(char* file_name, char** file_data){
 	return fsize;
 }
 
-//Loads the specified file into a linked list "html_pages"
+static void free_file_node(struct file_node **head){
+	struct file_node* node = *head;
+	while(node != NULL){
+		struct file_node* tmp = node;
+		node = node->next;
+		free(tmp->file_name);
+		free(tmp->file_data);
+		free(tmp);
+	} 
+
+	*head = NULL;
+}
+
+//Loads the specified file into a linked list "loaded_files"
 static void load_file(char* file){
 	char* file_string = 0;
 	long file_size = read_file(file, &file_string);
@@ -85,7 +136,7 @@ static void load_file(char* file){
 	if(file_size < 1 || file_string == NULL)
 		return;
 
-	struct file_node *new_node = malloc(sizeof(struct file_node));
+	struct file_node *new_node = malloc(sizeof(*new_node));
 	if(new_node == NULL) return;
 
 	new_node->file_name = file;
@@ -93,10 +144,10 @@ static void load_file(char* file){
 	new_node->file_size = file_size;	
 	new_node->next = NULL;
 
-	if(html_pages == NULL){
-		html_pages = new_node;
+	if(loaded_files == NULL){
+		loaded_files = new_node;
 	}else{
-		struct file_node *tmp_ptr = html_pages;
+		struct file_node *tmp_ptr = loaded_files;
 		for(;tmp_ptr->next != NULL; tmp_ptr = tmp_ptr->next);
 		tmp_ptr->next = new_node;
 	}
@@ -105,7 +156,7 @@ static void load_file(char* file){
 // Fills the file_data pointer with the data from the specified file.
 // The file must be loaded first with load_files()
 static long get_file(char* file_path, char** file_data){
-	struct file_node *tmp_ptr = html_pages;
+	struct file_node *tmp_ptr = loaded_files;
 
 	for(; tmp_ptr != NULL; tmp_ptr = tmp_ptr->next){
 		if(strcmp(tmp_ptr->file_name, file_path) == 0){
@@ -280,6 +331,8 @@ static void * non_autonomous_robot_thread(void* min_loop_time){
 	return NULL;
 }
 
+#ifdef AUTONOMOUS_MODE
+
 static void * autonomous_robot_thread(){
 	if(start_pwm(LEFT_MOTOR, 7.5F, 50, 0) == 0 || start_pwm(RIGHT_MOTOR, 7.5F, 50, 0) == 0){
 		fprintf(stderr, "Failed to initialize pins.\n");
@@ -306,12 +359,21 @@ static void * autonomous_robot_thread(){
 	return NULL;
 }
 
+#endif
+
 int main(int argc, char ** argv){
-	#ifndef AUTONOMOUS_MODE
+	#ifdef AUTONOMOUS_MODE
+
+	autonomous_robot_thread();
+	return 0;
+
+	#endif
 
 	int i = 0;
 	for(; i < (sizeof private_files/sizeof *private_files); i++){
-		load_file(private_files[i]);
+		char* malloced_file = malloc(strlen(private_files[i]) + 1);
+		strcpy(malloced_file, private_files[i]);
+		load_file(malloced_file);
 	}
 
 	pthread_t thread_id;
@@ -340,15 +402,10 @@ int main(int argc, char ** argv){
 		mg_mgr_poll(&mgr, 1000);
 	}
 
+	free_file_node(&loaded_files);
 	mg_mgr_free(&mgr);
 
 	thread_running = 0;
 	pthread_join(thread_id, NULL);
 	return 0;
-
-	#else
-
-	autonomous_robot_thread();
-
-	#endif
 }

@@ -15,7 +15,7 @@ struct fdx
     struct fdx *next;
 };
 
-struct fdx *fd_list = NULL;
+static struct fdx *fd_list = NULL;
 
 // gpio exports
 struct gpio_exp
@@ -23,10 +23,9 @@ struct gpio_exp
     unsigned int gpio;
     struct gpio_exp *next;
 };
-struct gpio_exp *exported_gpios = NULL;
+static struct gpio_exp *exported_gpios = NULL;
 
-int gpio_direction[120] = {-1};
-int gpio_mode;
+static int gpio_direction[120] = {-1};
 
 int gpio_export(unsigned int gpio)
 {

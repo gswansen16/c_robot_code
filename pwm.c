@@ -12,7 +12,7 @@
 #define PERIOD 0
 #define DUTY 1
 
-int pwm_initialized = 0;
+static int pwm_initialized = 0;
 
 // pwm exports
 struct pwm_exp
@@ -25,7 +25,7 @@ struct pwm_exp
     unsigned long period_ns;
     struct pwm_exp *next;
 };
-struct pwm_exp *exported_pwms = NULL;
+static struct pwm_exp *exported_pwms = NULL;
 
 struct pwm_exp *lookup_exported_pwm(const char *key) 
 {
