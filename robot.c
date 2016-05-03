@@ -201,6 +201,13 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data) {
 					}
 
 					char* file_path = malloc(sizeof(char) * (i + 1));
+
+					if(file_path == NULL){
+						mg_printf(nc, "HTTP/1.1 404 Not Found\r\nContent-type: text/html\r\nContent-length: 56\r\n\r\n<html><body>Not enough memory to load file</body></html>");
+						mg_send_http_chunk(nc, "", 0);
+						break;
+					}
+
 					memcpy(file_path, uri.p, i);
 					file_path[i] = '\0';
 					file_path++;
@@ -372,6 +379,12 @@ int main(int argc, char ** argv){
 	int i = 0;
 	for(; i < (sizeof private_files/sizeof *private_files); i++){
 		char* malloced_file = malloc(strlen(private_files[i]) + 1);
+
+		if(malloced_file == NULL){
+			fprintf(stderr, "Couldn't allocate memory for string: %s", private_files[i]);
+			return 1;
+		} 
+
 		strcpy(malloced_file, private_files[i]);
 		load_file(malloced_file);
 	}
