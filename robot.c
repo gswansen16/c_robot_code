@@ -117,8 +117,10 @@ static long read_file(char* file_name, char** file_data){
 
 static void free_file_node(struct file_node **head){
 	struct file_node* node = *head;
+	struct file_node* tmp;
+
 	while(node != NULL){
-		struct file_node* tmp = node;
+		tmp = node;
 		node = node->next;
 		free(tmp->file_name);
 		free(tmp->file_data);

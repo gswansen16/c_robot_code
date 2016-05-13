@@ -11,16 +11,15 @@ static char adc_prefix_dir[40];
 
 static int adc_initialized = 0;
 
-int initialize_adc(void)
-{
+int initialize_adc(void){
     char test_path[40];
     FILE *fh;
     
-    if (adc_initialized) {
+    if(adc_initialized){
         return 1;
     }
 
-    if (load_device_tree("cape-bone-iio")) {
+    if(load_device_tree("cape-bone-iio")){
         build_path("/sys/devices", "ocp.", ocp_dir, sizeof(ocp_dir));
         build_path(ocp_dir, "helper.", adc_prefix_dir, sizeof(adc_prefix_dir));
         //Modified this line to prevent buffer overflows.
@@ -31,7 +30,7 @@ int initialize_adc(void)
         
         fh = fopen(test_path, "r");
 
-        if (!fh) {
+        if (!fh){
             return 0; 
         }
         fclose(fh);
@@ -43,8 +42,7 @@ int initialize_adc(void)
     return 0;
 }
 
-int read_value(unsigned int ain, float *value)
-{
+int read_value(unsigned int ain, float *value){
     FILE * fh;
     char ain_path[40];
     int err, try_count=0;
@@ -54,12 +52,11 @@ int read_value(unsigned int ain, float *value)
     read_successful = 0;
 
     // Workaround to AIN bug where reading from more than one AIN would cause access failures
-    while (!read_successful && try_count < 3)
-    {
+    while(!read_successful && try_count < 3){
         fh = fopen(ain_path, "r");
 
         // Likely a bad path to the ocp device driver 
-        if (!fh) {
+        if(!fh){
             return -1;
         }
 
@@ -72,23 +69,21 @@ int read_value(unsigned int ain, float *value)
         try_count++;
     }
 
-    if (read_successful) return 1;
+    if(read_successful) 
+        return 1;
 
     // Fall through and fail
     return -1;
 }
 
-int setup_adc()
-{
+int setup_adc(){
     return initialize_adc();
 }
 
-void cleanup_adc(void)
-{
+void cleanup_adc(void){
     unload_device_tree("cape-bone-iio");
 }
 
-//Returns 1 on success. 0 on failure.
 int read_adc(char* channel, float *value){
     unsigned int ain;
 
